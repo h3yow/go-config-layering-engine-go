@@ -77,3 +77,66 @@ type DuplicateReloadError struct {
 func (e *DuplicateReloadError) Error() string {
 	return fmt.Sprintf("config: duplicate reload request id %q", e.RequestID)
 }
+
+// UnknownPreviewError 表示正式发布引用了不存在（或已被淘汰）的预演。
+type UnknownPreviewError struct {
+	PreviewID string
+}
+
+func (e *UnknownPreviewError) Error() string {
+	return fmt.Sprintf("config: unknown preview id %q", e.PreviewID)
+}
+
+// StalePreviewError 表示预演所基于的版本已不再是当前版本：
+// 预演与发布之间有别的新版本生效，必须重新预演。
+type StalePreviewError struct {
+	BaseRevision int64
+	Current      int64
+}
+
+func (e *StalePreviewError) Error() string {
+	return fmt.Sprintf("config: stale preview: based on revision %d, current is %d; preview again before publishing",
+		e.BaseRevision, e.Current)
+}
+
+// PreviewMismatchError 表示预演与正式发布之间来源内容发生了变化，
+// 预演结论不能套用到变化后的内容上，发布被拒绝。
+type PreviewMismatchError struct {
+	PreviewID string
+}
+
+func (e *PreviewMismatchError) Error() string {
+	return fmt.Sprintf("config: preview %q no longer matches current source contents; preview again before publishing",
+		e.PreviewID)
+}
+
+// PreviewRejectedError 表示试图正式发布一份预演结论为"不接受"的候选。
+type PreviewRejectedError struct {
+	PreviewID  string
+	Rejections []Rejection
+}
+
+func (e *PreviewRejectedError) Error() string {
+	return fmt.Sprintf("config: preview %q was rejected (%d rejection(s)); cannot publish a rejected candidate",
+		e.PreviewID, len(e.Rejections))
+}
+
+// UnknownRevisionError 表示回滚目标版本从未存在（或大于当前版本）。
+type UnknownRevisionError struct {
+	Revision int64
+}
+
+func (e *UnknownRevisionError) Error() string {
+	return fmt.Sprintf("config: unknown target revision %d", e.Revision)
+}
+
+// EvictedRevisionError 表示回滚目标版本曾存在、但已因超出保留上限被淘汰。
+type EvictedRevisionError struct {
+	Revision       int64
+	OldestRetained int64
+}
+
+func (e *EvictedRevisionError) Error() string {
+	return fmt.Sprintf("config: target revision %d has been evicted from history (oldest retained is %d)",
+		e.Revision, e.OldestRetained)
+}
