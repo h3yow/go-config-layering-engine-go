@@ -77,3 +77,32 @@ type DuplicateReloadError struct {
 func (e *DuplicateReloadError) Error() string {
 	return fmt.Sprintf("config: duplicate reload request id %q", e.RequestID)
 }
+
+// PreviewMismatchError 表示正式发布时预演结论已与现状对不上：
+// 预演基线版本落后、预演本身不可接受，或两次之间来源内容发生了变化
+// （指纹不一致）。发布方必须重新预演后再发布。
+type PreviewMismatchError struct {
+	// BaseRevision 是预演时基于的版本。
+	BaseRevision int64
+	// CurrentRevision 是发布时的当前版本。
+	CurrentRevision int64
+	// Detail 说明具体是哪一项对不上（基线版本 / 来源指纹 / 预演不可接受）。
+	Detail string
+}
+
+func (e *PreviewMismatchError) Error() string {
+	return fmt.Sprintf("config: preview no longer matches (base revision %d, current revision %d): %s",
+		e.BaseRevision, e.CurrentRevision, e.Detail)
+}
+
+// VersionNotFoundError 表示回滚目标版本不可用：从未存在、
+// 已被历史保留上限淘汰，或目标就是当前版本（无意义回滚）。
+type VersionNotFoundError struct {
+	Revision int64
+	// Reason 取 "unknown" / "evicted" / "current"。
+	Reason string
+}
+
+func (e *VersionNotFoundError) Error() string {
+	return fmt.Sprintf("config: cannot roll back to revision %d: %s", e.Revision, e.Reason)
+}
